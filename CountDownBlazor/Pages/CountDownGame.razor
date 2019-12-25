@@ -1,0 +1,66 @@
+@page "/game"
+@using CoreGame = CountDownCore.CountDownGame;
+<div id="Game">
+    <div id="GameVariables">
+        <div id="AvailableNumbers">Available numbers: @CurrentlyAvailableNumbers</div>
+        <div id="Target">target: @Target</div>
+    </div>
+    <div id="Operations">
+        <pre>@Operations</pre>
+    </div>
+    <div id="Result">
+        <h3>@Result</h3>
+    </div>
+    <div id="InputBox">
+        <input type="text" @onkeyup="Update" @bind-value="inputBoxValue">
+        <button @onclick="OnInitialized">new game</button>
+    </div>
+</div>
+@code{
+    private CoreGame currentGame;
+    public int Target => currentGame.StartingVariables.target;
+    private string CurrentlyAvailableNumbers => ReadList<int>(currentlyAvailableNumbers," | ");
+    private string Operations => ReadList<CoreGame.Operation>(operations,Environment.NewLine);
+    private List<int> currentlyAvailableNumbers;
+    private List<CoreGame.Operation> operations;
+    private string inputBoxValue; 
+    public string Result;
+    private string response;
+    protected override void OnInitialized()
+    {
+        currentGame = CountDownCore.CountDownGameGenerator.GenerateGame(4);
+        currentlyAvailableNumbers = new List<int>( currentGame.StartingVariables.givenNumbers);
+        operations = new List<CoreGame.Operation>();
+        response = "";
+        Result = "";
+    }
+    private void Update(KeyboardEventArgs e){
+        if(e.Code == "Enter"||e.Code == "NumpadEnter"){
+            string inputValue = inputBoxValue;
+            if(!CoreGame.ContainesIllegalCharacters(inputValue)){
+                var operation =CoreGame.Operation.FromString(inputValue);
+                response+=inputValue+';';
+                if(currentlyAvailableNumbers.Contains(operation.o1)&&currentlyAvailableNumbers.Contains(operation.o2))
+                {
+                    operations.Add(operation);
+                    currentlyAvailableNumbers.Remove(operation.o1);
+                    currentlyAvailableNumbers.Remove(operation.o2);
+                    currentlyAvailableNumbers.Add(operation.Result);
+                }
+            }
+            inputBoxValue = "";
+        }
+        if (currentlyAvailableNumbers.Count<2||currentlyAvailableNumbers.Contains(Target))
+        {
+            Result = currentGame.AnalyseResponse(response).ToString();
+        }
+    }
+    private string ReadList<T>(List<T> input,string sepirator){
+        string output = default(string);
+        foreach (var item in input)
+        {
+            output += item.ToString() + sepirator;
+        }
+        return output;
+    }
+}
